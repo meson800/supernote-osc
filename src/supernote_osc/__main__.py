@@ -24,10 +24,15 @@ async def webserver_main():
 loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
-webserver_task = loop.create_task(webserver_main())
-osc_task = loop.create_task(run_osc())
+tasks = [
+    loop.create_task(t)
+    for t in [
+        webserver_main(),
+        run_osc(),
+    ]
+]
 
 for signal in [SIGINT, SIGTERM]:
-    loop.add_signal_handler(signal, webserver_task.cancel)
-    loop.add_signal_handler(signal, osc_task.cancel)
-loop.run_until_complete(webserver_task)
+    for task in tasks:
+        loop.add_signal_handler(signal, task.cancel)
+loop.run_until_complete(asyncio.wait(tasks))
