@@ -1,6 +1,15 @@
 from fastapi import FastAPI
 
-from .osc import heartbeat_event, mixer_scene_event, mixer_scenes, osc_send, obp
+from .osc import (
+    heartbeat_event,
+    mixer_scene_event,
+    mixer_scenes,
+    update_strips,
+    strips,
+    update_strip_plugins,
+    osc_send,
+    obp,
+)
 
 app = FastAPI()
 
@@ -50,26 +59,16 @@ async def shift_selected_plugin(delta: int):
     return
 
 
-# If we receive strip/list, we need to ping it again
-@app.get("/striplist")
-async def send_strip_list():
-    msg = obp.OSCMessage("/strip/list", ",", [])
-    osc_send(msg, "daw")
-    return
+@app.get("/strip")
+async def fetch_strips():
+    await update_strips()
+    return strips
 
 
-@app.get("/strip/{id}/plugins")
-async def get_strip_plugins(id: int):
-    msg = obp.OSCMessage("/strip/plugin/list", ",i", [id])
-    osc_send(msg, "daw")
-    return
-
-
-@app.get("/strip/{ssid}/plugins/{piid}")
-async def get_strip_plugin_params(ssid: int, piid):
-    msg = obp.OSCMessage("/strip/plugin/descriptor", ",ii", [ssid, piid])
-    osc_send(msg, "daw")
-    return
+@app.get("/strip/{ssid}/plugins")
+async def fetch_strip_plugins(ssid: int):
+    await update_strip_plugins(ssid)
+    return strips[ssid]
 
 
 @app.get("/longpoll/{osc_path:path}")
